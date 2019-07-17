@@ -1,0 +1,23 @@
+{
+  "name": "pinknetworkjs",
+  "version": "1.0.0-rc1",
+  "description": "API wrapper for api.pink.network",
+  "dependencies": {
+    "socket.io-client": "~2.2.0",
+    "request": "~2.88.0",
+    "request-promise-native": "~1.0.7"
+  },
+  "main": "index.js",
+  "homepage": "https://pink.network",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pinknetworkx/pinknetworkjs"
+  },
+  "bugs": {
+    "url": "https://github.com/pinknetworkx/pinknetworkjs/issues",
+    "email": "pinknetworkx@gmail.com"
+  },
+  "keywords": [],
+  "author": "pink.network",
+  "license": "ISC"
+}
