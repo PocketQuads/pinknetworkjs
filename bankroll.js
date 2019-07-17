@@ -3,100 +3,83 @@ const request = require("request-promise-native");
 
 const API_ENDPOINT = "https://api.pink.network/bankroll/";
 
-class BetConfig {
-    constructor(max_roll = 10000) {
-        this.lower_bound = null;
-        this.upper_bound = null;
-        this.rake = 0;
-        this.multipler = 0;
-    }
-
-    setRange(lower_bound, upper_bound) {
-        this.lower_bound = lower_bound;
-        this.upper_bound = upper_bound;
-    }
-
-    getLowerBound() {
-        this._fill();
-        return this.lower_bound;
-    }
-
-    getUpperBound() {
-        this._fill();
-        return this.upper_bound;
-    }
-
-    setRake(rake) {
-        this.rake = rake;
-    }
-
-    getRake() {
-        this._fill();
-        return this.rake;
-    }
-
-    setMultiplier(multiplier) {
-        this.multipler = multiplier;
-    }
-
-    getMultiplier() {
-        this._fill();
-        return this.multipler;
-    }
-
-    _fill() {
-        if (this.rake !== null && this.upper_bound !== null && this.multipler === null) {
-            if (this.lower_bound === null) {
-                this.lower_bound = 1;
-            }
-
-            // TODO calculate multiplier
-        } else if (this.rake !== null && this.multipler !== null && this.upper_bound === null) {
-            if (this.lower_bound === null) {
-                this.lower_bound = 1;
-            }
-
-            // TODO: calculate upper_bound
-        }
-    }
-}
-
-function random_hex_string(length) {
-    let result = '';
-    let characters = '0123456789abcdef';
-    let charactersLength = characters.length;
-
-    for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-
-    return result;
-}
-
 class BankrollAPI {
     constructor() {
         this.roll_subscription = new RollSubscription();
         this.cycle_roll_subscriptions = {};
-
-        this.bankroll = 10000;
     }
 
-    rollsubscription() {
+    /**
+     * @returns {RollSubscription}
+     */
+    getRollSubscription() {
         return this.roll_subscription;
     }
 
-    cyclesubscription(roll_id) {
-        if (typeof this.bankroll["" + roll_id + ""] === "undefined") {
-            this.cycle_roll_subscriptions["" + roll_id + ""] = new CycleRollSubscription(this, roll_id);
+    /**
+     *
+     * @param {number} roll_id
+     * @returns {CycleRollSubscription}
+     */
+    getCycleRollSubscription(roll_id) {
+        if (typeof this.bankroll[String(roll_id)] === "undefined") {
+            this.cycle_roll_subscriptions[String(roll_id)] = new CycleRollSubscription(roll_id);
         }
 
-        return this.cycle_roll_subscriptions["" + roll_id + ""];
+        return this.cycle_roll_subscriptions[String(roll_id)];
     }
 
-    createEmptyBetConfig() {
-        return new BetConfig();
+    /**
+     *
+     * @param {number} multiplier
+     * @param {number} rake
+     * @param {number} max_roll
+     * @returns {BetConfig}
+     */
+    createBetConfigByMultiplier(multiplier, rake, max_roll = 10000) {
+        let lower_bound = 0;
+        let upper_bound = 0;
+
+        // TODO: calculate
+
+        return new BetConfig(multiplier, lower_bound, upper_bound, max_roll);
     }
 
+    /**
+     *
+     * @param {number} lower_bound
+     * @param {number} upper_bound
+     * @param {number} rake
+     * @param {number} max_roll
+     * @returns {BetConfig}
+     */
+    createBetConfigByRange(lower_bound, upper_bound, rake, max_roll = 10000) {
+        let multiplier = 0;
+
+        // TODO calculate
+
+        return new BetConfig(multiplier, lower_bound, upper_bound, max_roll);
+    }
+
+    /**
+     *
+     * @param {number} multiplier
+     * @param {number} lower_bound
+     * @param {number} upper_bound
+     * @param {number} max_roll
+     * @returns {BetConfig}
+     */
+    createBetConfig(multiplier, lower_bound, upper_bound, max_roll = 10000) {
+        return new BetConfig(multiplier, lower_bound, upper_bound, max_roll);
+    }
+
+    /**
+     *
+     * @param {number} amount
+     * @param {String} rake_recipient
+     * @param {BetConfig} bet_config
+     * @returns {boolean|{identifier: string, amount: *, memo: string}}
+     */
     createRollTransactionMemo(amount, rake_recipient, bet_config) {
         if (amount > this.roll_subscription.getMaxBet(amount, bet_config)) {
             return false;
@@ -105,16 +88,21 @@ class BankrollAPI {
         let identifier = random_hex_string(16);
 
         return {
-            "memo":
-                "#bet " + bet_config.getMultiplier() + " " + bet_config.getLowerBound() + " " + bet_config.getUpperBound() +
-                " " + btoa(rake_recipient) + " " + identifier,
+            "memo": "#bet " + bet_config.getMultiplier() + " " + bet_config.getLowerBound() + " " + bet_config.getUpperBound() + " " + btoa(rake_recipient) + " " + identifier,
             "identifier": identifier,
             "amount": amount
         }
     }
 
+    /**
+     *
+     * @param {number} roll_id
+     * @param {number} amount
+     * @param {BetConfig} bet_config
+     * @returns {{amount: *, memo: string}|boolean}
+     */
     createCycleRollTransactionMemo(roll_id, amount, bet_config) {
-        if(amount > this.roll_subscription.getMaxBet(amount, bet_config)) {
+        if (amount > this.roll_subscription.getMaxBet(amount, bet_config)) {
             return false;
         }
 
@@ -125,7 +113,6 @@ class BankrollAPI {
     }
 
     /* API ENDPOINTS */
-
     async getRollHistory(limit = 50, page = 1, rake_recipient = null, bettor = null) {
         let resp = await this.request("rolls", {
             "limit": limit,
@@ -134,7 +121,7 @@ class BankrollAPI {
             "bettor": bettor
         });
 
-        if(resp["success"]) {
+        if (resp["success"]) {
             return resp["data"];
         }
 
@@ -144,7 +131,7 @@ class BankrollAPI {
     async getRollResult(roll_id) {
         let resp = await this.request("rolls/" + roll_id);
 
-        if(resp["success"]) {
+        if (resp["success"]) {
             return resp["data"];
         }
 
@@ -154,7 +141,7 @@ class BankrollAPI {
     async getCycleRoll(roll_id) {
         let resp = await this.request("cycles/info/" + roll_id);
 
-        if(resp["success"]) {
+        if (resp["success"]) {
             return resp["data"];
         }
 
@@ -168,7 +155,7 @@ class BankrollAPI {
             "bettor": bettor
         });
 
-        if(resp["success"]) {
+        if (resp["success"]) {
             return resp["data"];
         }
 
@@ -178,13 +165,21 @@ class BankrollAPI {
     async getCycleRollResult(roll_id, cycle_id) {
         let resp = await this.request("cycles/" + roll_id + "/" + cycle_id);
 
-        if(resp["success"]) {
+        if (resp["success"]) {
             return resp["data"];
         }
 
         throw resp["code"] + resp["message"];
     }
 
+    /**
+     *
+     * @param endpoint
+     * @param params
+     * @param version
+     * @param method
+     * @returns {Promise<{code: number, data: null, success: boolean, message: string}>}
+     */
     async request(endpoint, params = {}, version = 1, method = "GET") {
         let url = API_ENDPOINT + "v" + version + "/" + endpoint;
 
@@ -227,13 +222,59 @@ class BankrollAPI {
     }
 }
 
+class BetConfig {
+    /**
+     *
+     * @param multiplier
+     * @param lower_bound
+     * @param upper_bound
+     * @param max_roll
+     */
+    constructor(multiplier, lower_bound, upper_bound, max_roll = 10000) {
+        this.lower_bound = lower_bound;
+        this.upper_bound = upper_bound;
+        this.multipler = multiplier;
+        this.max_roll = max_roll;
+    }
+
+    /**
+     *
+     * @returns {number}
+     */
+    getLowerBound() {
+        return this.lower_bound;
+    }
+
+    /**
+     *
+     * @returns {number}
+     */
+    getUpperBound() {
+        return this.upper_bound;
+    }
+
+    /**
+     *
+     * @returns {number}
+     */
+    getMultiplier() {
+        return this.multipler;
+    }
+
+    /**
+     * @returns {number}
+     */
+    getMaxRoll() {
+        return this.max_roll;
+    }
+}
+
 class RollSubscription {
-    constructor(bankroll_api, roll_id) {
-        this.api = bankroll_api;
-        this.socket = socketio(API_ENDPOINT + "v1/cycles/subscribe/" + roll_id, {
+    constructor() {
+        this.socket = socketio(API_ENDPOINT + "v1/rolls/subscribe", {
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionDelayMax : 5000,
+            reconnectionDelayMax: 5000,
             reconnectionAttempts: Infinity
         });
 
@@ -246,13 +287,13 @@ class RollSubscription {
         this.socket.on("bankroll_update", function (data) {
             self.bankroll = data;
 
-            for(let i = 0; self.bankrollcallbacks.length; i++) {
+            for (let i = 0; self.bankrollcallbacks.length; i++) {
                 self.bankrollcallbacks[i](data);
             }
         });
 
         this.socket.on("new_roll", function (data) {
-            for(let i = 0; self.rollcallbacks.length; i++) {
+            for (let i = 0; self.rollcallbacks.length; i++) {
                 self.rollcallbacks[i](data);
             }
         });
@@ -282,6 +323,11 @@ class RollSubscription {
         this.bankrollcallbacks.push(cb);
     }
 
+    /**
+     *
+     * @param {BetConfig} bet_config
+     * @returns {number}
+     */
     getMaxBet(bet_config) {
         // TODO: real bankroll calculation
         return 0.05 * this.bankroll;
@@ -289,12 +335,15 @@ class RollSubscription {
 }
 
 class CycleRollSubscription {
-    constructor(bankroll_api, roll_id) {
-        this.api = bankroll_api;
+    /**
+     *
+     * @param {number} roll_id
+     */
+    constructor(roll_id) {
         this.socket = socketio(API_ENDPOINT + "v1/cycles/subscribe/" + roll_id, {
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionDelayMax : 5000,
+            reconnectionDelayMax: 5000,
             reconnectionAttempts: Infinity
         });
 
@@ -311,17 +360,17 @@ class CycleRollSubscription {
         });
 
         this.socket.on("new_roll", function (data) {
-            for(let i = 0; self.rollcallbacks.length; i++) {
+            for (let i = 0; self.rollcallbacks.length; i++) {
                 self.rollcallbacks[i](data);
             }
         });
 
         this.socket.on("new_bet", function (data) {
-            for(let i = 0; self.betcallbacks.length; i++) {
+            self.bets.push(data);
+
+            for (let i = 0; self.betcallbacks.length; i++) {
                 self.betcallbacks[i](data);
             }
-
-            self.bets = [];
         });
     }
 
@@ -333,10 +382,27 @@ class CycleRollSubscription {
         this.betcallbacks.push(cb);
     }
 
+    /**
+     *
+     * @param {BetConfig} bet_config
+     * @returns {number}
+     */
     getMaxBet(bet_config) {
         // TODO: real bankroll calculation
         return 0.05 * this.bankroll;
     }
+}
+
+function random_hex_string(length) {
+    let result = '';
+    let characters = '0123456789abcdef';
+    let charactersLength = characters.length;
+
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+
+    return result;
 }
 
 module.exports = BankrollAPI;
