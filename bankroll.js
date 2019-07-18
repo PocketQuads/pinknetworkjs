@@ -37,10 +37,8 @@ class BankrollAPI {
      * @returns {BetConfig}
      */
     createBetConfigByMultiplier(multiplier, rake, max_roll = 10000) {
-        let lower_bound = 0;
-        let upper_bound = 0;
-
-        // TODO: calculate
+        let lower_bound = 1;
+        let upper_bound = Math.floor(((99-rake)/(100*multiplier)) * max_roll);
 
         return new BetConfig(multiplier, lower_bound, upper_bound, max_roll);
     }
@@ -54,11 +52,10 @@ class BankrollAPI {
      * @returns {BetConfig}
      */
     createBetConfigByRange(lower_bound, upper_bound, rake, max_roll = 10000) {
-        let multiplier = 0;
+        let odds = (upper_bound - lower_bound + 1) / max_roll;
+        let multiplier = ((99-rake)/(100*odds));
 
-        // TODO calculate
-
-        return new BetConfig(multiplier, lower_bound, upper_bound, max_roll);
+        return new BetConfig(multiplier.toFixed(3), lower_bound, upper_bound, max_roll);
     }
 
     /**
