@@ -16,8 +16,12 @@ npm install pinkbankrolljs
 ```
 
 Use it in the browser:
-```
-<script type="text/javascript" src="pinknetwork.bundle.js" />
+```html
+<!-- requirements -->
+<script type="text/javascript" src="socket.io.min.js" />
+<script type="text/javascript" src="jquery.min.js" />
+<!-- api wrapper for browser -->
+<script type="text/javascript" src="pinknetwork.min.js" />
 ```
 
 ### Bankroll
