@@ -21,7 +21,7 @@ module.exports = function (io, request) {
          * @returns {CycleRollSubscription}
          */
         getCycleRollSubscription(roll_id) {
-            if (typeof this.bankroll[String(roll_id)] === "undefined") {
+            if (typeof this.cycle_roll_subscriptions[String(roll_id)] === "undefined") {
                 this.cycle_roll_subscriptions[String(roll_id)] = new CycleRollSubscription(roll_id);
             }
 
@@ -77,17 +77,16 @@ module.exports = function (io, request) {
          * @returns {boolean|{identifier: string, amount: *, memo: string}}
          */
         createRollTransactionMemo(amount, rake_recipient, bet_config) {
-            if (amount > this.roll_subscription.getMaxBet(amount, bet_config)) {
+            if (amount > this.getRollSubscription().getMaxBet(amount, bet_config)) {
                 return false;
             }
 
             let identifier = random_hex_string(16);
+            let client_seed = random_hex_string(16);
 
-            return {
-                "memo": "#bet " + bet_config.getMultiplier() + " " + bet_config.getLowerBound() + " " + bet_config.getUpperBound() + " " + btoa(rake_recipient) + " " + identifier,
-                "identifier": identifier,
-                "amount": amount
-            }
+            this.getRollSubscription().subscribeIdentifier(identifier);
+
+            return "#bet " + bet_config.getMultiplier() + " " + bet_config.getLowerBound() + " " + bet_config.getUpperBound() + " " + rake_recipient + " " + identifier + " " + client_seed
         }
 
         /**
@@ -98,14 +97,13 @@ module.exports = function (io, request) {
          * @returns {{amount: *, memo: string}|boolean}
          */
         createCycleRollTransactionMemo(roll_id, amount, bet_config) {
-            if (amount > this.roll_subscription.getMaxBet(amount, bet_config)) {
+            if (amount > this.getCycleRollHistory(roll_id).getMaxBet(amount, bet_config)) {
                 return false;
             }
 
-            return {
-                "memo": "#join " + roll_id + " " + bet_config.getMultiplier() + " " + bet_config.getLowerBound() + " " + bet_config.getUpperBound(),
-                "amount": amount
-            }
+            let client_seed = random_hex_string(16);
+
+            return "#join " + roll_id + " " + bet_config.getMultiplier() + " " + bet_config.getLowerBound() + " " + bet_config.getUpperBound() + " " + client_seed;
         }
 
         /* API ENDPOINTS */
@@ -267,11 +265,8 @@ module.exports = function (io, request) {
 
     class RollSubscription {
         constructor() {
-            this.socket = io(API_ENDPOINT + "v1/rolls/subscribe", {
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                reconnectionAttempts: Infinity
+            this.socket = io(API_ENDPOINT + "v1/rolls", {
+                "path": "/bankroll/socket"
             });
 
             this.bankroll = 0;
@@ -303,10 +298,6 @@ module.exports = function (io, request) {
             this.socket.emit("subscribe_identifier", identifier)
         }
 
-        subscribeCreator(wax_account) {
-            this.socket.emit("subscribe_creator", wax_account)
-        }
-
         subscribeAll() {
             this.socket.emit("subscribe_all", null)
         }
@@ -336,11 +327,8 @@ module.exports = function (io, request) {
          * @param {number} roll_id
          */
         constructor(roll_id) {
-            this.socket = io(API_ENDPOINT + "v1/cycles/subscribe/" + roll_id, {
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                reconnectionAttempts: Infinity
+            this.socket = io(API_ENDPOINT + "v1/cycles/" + roll_id, {
+                "path": "/bankroll/socket"
             });
 
             this.bankroll = 0;

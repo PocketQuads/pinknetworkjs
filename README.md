@@ -12,16 +12,17 @@ in a node project
 
 Use it in a npm environment:
 ```
-npm install pinkbankrolljs
+npm install pinknetworkjs
 ```
 
 Use it in the browser:
 ```html
-<!-- requirements -->
+<!-- socket.io >= 2.0.0 -->
 <script type="text/javascript" src="socket.io.min.js" />
+<!-- jquery >= 3.0.0 -->
 <script type="text/javascript" src="jquery.min.js" />
 <!-- api wrapper for browser -->
-<script type="text/javascript" src="pinknetwork.min.js" />
+<script type="text/javascript" src="./node_modules/pinknetworkjs/pinknetwork.min.js" />
 ```
 
 ### Bankroll
@@ -38,8 +39,6 @@ let memo = bankroll.createRollTransactionMemo(10, "rake.recipient", betconfig)
 // subscribe to the roll to get notified when the result is available
 if(memo === false) {
     console.log("bankroll too small")
-} else {
-    bankroll.getRollSubscription().subscribeIdentifier(memo["identifier"])
 }
 
 // TODO: send transaction with memo["memo"]
@@ -67,7 +66,7 @@ if(memo === false) {
     console.log("bankroll too small")
 }
 
-// TODO: send transaction with memo["memo"]
+// TODO: send transaction with memo
 
 // listen to new roll results
 bankroll.getCycleRollSubscription(roll_id).onNewRollResult((roll) => {
@@ -120,13 +119,13 @@ which will return the other classes.
   * @param amount // WAX which is sent (used to verify whether the bet is allowed)
   * @param rake_recipient // Account name which receives the rake
   * @param bet_config // BetConfig object
-  * @return {"memo": string, "identifier": string, "amount": float}
+  * @return string // memo of the transaction
   
 * `createCycleRollTransactionMemo(int roll_id, float amount, BetConfig bet_config) `
   * @param roll_id // roll_id of the cycle roll
   * @param amount // WAX which is sent (used to verify whether the bet is allowed)
   * @param bet_config // BetConfig object
-  * @return {"memo": string, "amount": float}
+  * @return string // memo of the transaction
   
 * `async request(string endpoint, params = {}, version = 1, method = "GET")`
   * @param endpoint // example "rolls/1"
@@ -170,7 +169,6 @@ and fires events whenever the bankroll is updated or a new roll came in which yo
 * Subscribers
   * `subscribeRakeRecipient(string wax_account)`
   * `subscribeIdentifier(string identifier)`
-  * `subscribeCreator(string wax_account)`
   * `subscribeAll()`
 
 
