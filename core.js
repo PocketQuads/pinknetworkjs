@@ -1,3 +1,5 @@
+const bankroll_management = require("./bankroll-management");
+
 module.exports = function (io, request) {
     const API_ENDPOINT = "https://api.pink.network/bankroll/";
 
@@ -228,6 +230,13 @@ module.exports = function (io, request) {
             this.upper_bound = upper_bound;
             this.multipler = multiplier;
             this.max_roll = max_roll;
+
+            if (lower_bound < 1 || lower_bound > upper_bound || upper_bound > max_roll) {
+                throw new Error("The bet has illegal bounds");
+            }
+            if ((upper_bound - lower_bound + 1) / max_roll * multiplier > 0.99) {
+                throw new Error("The bet can't have an EV higher than 0.99")
+            }
         }
 
         /**
@@ -315,8 +324,7 @@ module.exports = function (io, request) {
          * @returns {number}
          */
         getMaxBet(bet_config) {
-            // TODO: real bankroll calculation
-            return 0.05 * this.bankroll;
+            return bankroll_management.getMaxBet([], bet_config, this.bankroll);
         }
     }
 
@@ -371,8 +379,7 @@ module.exports = function (io, request) {
          * @returns {number}
          */
         getMaxBet(bet_config) {
-            // TODO: real bankroll calculation
-            return 0.05 * this.bankroll;
+            return bankroll_management.getMaxBet(this.bets, bet_config, this.bankroll);
         }
     }
 

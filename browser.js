@@ -34,5 +34,5 @@ const request = function(options) {
 };
 
 pinknetwork = {
-    "bankroll": require("./bankroll")(io, request)
+    "bankroll": require("./core")(io, request)
 };
